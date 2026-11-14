@@ -1,0 +1,52 @@
+[project]
+name = "chipcity-bot"
+version = "1.0.0"
+description = "ChipCity - a play-money Telegram casino bot. Chips have no monetary value."
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.13,<4",
+    "aiohttp>=3.9",
+    "SQLAlchemy[asyncio]>=2.0.30,<3",
+    "aiosqlite>=0.20",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pydantic-settings>=2.4",
+    "redis>=5.0",
+    "Pillow>=10.3",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = ["bot/db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008", "SIM117", "E501"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = false
+ignore_missing_imports = true
+check_untyped_defs = true
+# aiogram types Message.text/from_user/callback.message as Optional; the command and
+# callback filters (plus the middleware) guarantee them at runtime, so let mypy check
+# everything else without flagging each handler access.
+disable_error_code = ["union-attr"]
+
+[tool.setuptools.packages.find]
+include = ["bot*"]
