@@ -154,6 +154,11 @@ async def run() -> None:
 
     if settings.mode == "webhook":
         app = web.Application()
+
+        async def health(_request: web.Request) -> web.Response:
+            return web.json_response({"status": "ok", "service": "chipcity"})
+
+        app.router.add_get("/health", health)
         SimpleRequestHandler(
             dispatcher=dispatcher, bot=bot, secret_token=settings.webhook_secret or None
         ).register(app, path="/webhook")

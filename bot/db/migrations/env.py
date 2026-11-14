@@ -11,6 +11,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from bot.db.models import Base
+from bot.db.url import normalize_database_url
 
 config = context.config
 if config.config_file_name is not None:
@@ -18,11 +19,11 @@ if config.config_file_name is not None:
 
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+    config.set_main_option("sqlalchemy.url", normalize_database_url(database_url))
 
 # Alembic connects before the application's create_engine() helper runs, so make
 # sure a SQLite file's parent directory exists (e.g. ./data/ on first boot).
-configured_url = config.get_main_option("sqlalchemy.url") or ""
+configured_url = normalize_database_url(config.get_main_option("sqlalchemy.url") or "")
 if configured_url.startswith("sqlite"):
     sqlite_path = configured_url.split(":///", 1)[-1].split("?", 1)[0]
     if sqlite_path and sqlite_path != ":memory:":

@@ -5,6 +5,7 @@ import pathlib
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from bot.db.models import Base
+from bot.db.url import normalize_database_url
 
 
 def _ensure_sqlite_dir(url: str) -> None:
@@ -15,6 +16,7 @@ def _ensure_sqlite_dir(url: str) -> None:
 
 
 def create_engine(database_url: str, *, echo: bool = False) -> AsyncEngine:
+    database_url = normalize_database_url(database_url)
     _ensure_sqlite_dir(database_url)
     kwargs: dict = {"echo": echo, "pool_pre_ping": True}
     if database_url.startswith("sqlite"):

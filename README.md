@@ -103,12 +103,12 @@ internally everything is integer cents (`1 Chip = 100`).
 |---|---|---|
 | `BOT_TOKEN` | — | BotFather token. Required. |
 | `OWNER_TELEGRAM_ID` | `0` | The only account allowed to create Chips / administer. |
-| `DATABASE_URL` | SQLite file | `sqlite+aiosqlite:///…` or `postgresql+asyncpg://…`. |
+| `DATABASE_URL` | SQLite file | `sqlite+aiosqlite:///…` or Postgres. Railway's `postgres://`, `postgresql://` and `sslmode=require` forms are normalized automatically. |
 | `REDIS_URL` | empty | Reserved for a shared rate limiter; empty uses the in-process bucket. |
 | `MODE` | `polling` | `polling` for dev/Railway workers, `webhook` for a public HTTPS host. |
 | `WEBHOOK_URL` | — | Public base URL, e.g. `https://chips.example.com` (webhook mode). |
 | `WEBHOOK_SECRET` | `change-me-please` | Telegram secret token for the webhook. |
-| `WEB_HOST` / `WEB_PORT` | `0.0.0.0` / `8080` | Webhook listener. |
+| `WEB_HOST` / `WEB_PORT` | `0.0.0.0` / `8080` | Webhook listener. `PORT` (Railway) is used when `WEB_PORT` is unset. |
 | `DEFAULT_HOUSE_EDGE` | `0.01` | Initial edge for games created on first boot. |
 | `MIN_BET` / `MAX_BET` | `1` / `100000` | Global default limits in Chips (per-game overrides exist). |
 | `MAX_PROFIT_PER_BET` | `1000000` | Hard cap on profit per bet in Chips. |
@@ -127,7 +127,7 @@ cp .env.example .env    # fill BOT_TOKEN + OWNER_TELEGRAM_ID
 docker compose up --build
 ```
 
-`docker-compose.yml` starts PostgreSQL 16, Redis 7 and the bot. The bot service runs
+`docker-compose.yml` starts PostgreSQL 16, Redis 7 and the bot. The Docker image runs
 `alembic upgrade head` before `python -m bot`, waits for a healthy database and keeps `data/` and `logs/`
 on the host. The Compose environment overrides `DATABASE_URL` to the Postgres service; `env_file: .env`
 still supplies the token and owner ID.
@@ -151,13 +151,33 @@ chips.example.com {
 
 Telegram's webhook is registered automatically at startup. No inbound ports other than 80/443 are needed.
 
-### Railway
+### Railway (recommended)
 
-1. Create a project from the repo (Dockerfile detected), add a **PostgreSQL** plugin.
-2. Variables: `BOT_TOKEN`, `OWNER_TELEGRAM_ID`, `MODE=polling`, and
-   `DATABASE_URL` from the plugin (change the scheme to `postgresql+asyncpg://` if Railway gives
-   `postgresql://`).
-3. Start command: `alembic upgrade head && python -m bot` (or set it as the service command).
+The Dockerfile is the deployment unit: its `CMD` runs `alembic upgrade head` and then the bot, so Railway
+does not need a custom build or start command.
+
+1. Push this repository to GitHub, then in Railway choose **New Project → Deploy from GitHub repo** and
+   select it. Railway detects the Dockerfile automatically.
+2. Choose **New → Database → PostgreSQL**. Wait until it is healthy.
+3. Open the bot service → **Variables** and add:
+
+   | Variable | Value |
+   |---|---|
+   | `BOT_TOKEN` | The BotFather token. Set it in the dashboard only, never in Git. |
+   | `OWNER_TELEGRAM_ID` | Your numeric Telegram ID. |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (use your database service's name if different). |
+   | `MODE` | `polling` |
+   | `STARTING_BALANCE` | `0` |
+
+   All other settings are optional; see [Configuration](#configuration). Railway's Postgres URL is accepted
+   as-is, including `postgres://`, `postgresql://` and `sslmode=require`.
+4. Deploy. The logs should show Alembic running, then `starting ChipCity` and `polling mode`. No public
+   domain, port or health check is needed in polling mode; Railway can run the service as a worker.
+5. DM the bot `/start`, then credit Chips from the owner account: `/addcredits <your_id> 10000`.
+
+For webhook mode instead: set `MODE=webhook`, add `WEBHOOK_URL=https://<your-service>.up.railway.app`,
+and expose a Railway domain. The app binds `0.0.0.0` and reads Railway's injected `PORT`; `/health` is
+available for a Railway health check.
 
 ### Render
 

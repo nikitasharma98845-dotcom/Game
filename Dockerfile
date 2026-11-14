@@ -22,4 +22,5 @@ USER chipcity
 ENV LOG_FILE=/app/logs/bot.log \
     DATABASE_URL=sqlite+aiosqlite:////app/data/chipcity.db
 
-CMD ["python", "-m", "bot"]
+# Railway, Compose and plain `docker run` all migrate before starting the bot.
+CMD ["sh", "-c", "alembic upgrade head && exec python -m bot"]

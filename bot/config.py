@@ -3,8 +3,10 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from bot.db.url import normalize_database_url
 
 CHIP = 100  # one Chip == 100 integer cents
 
@@ -22,7 +24,8 @@ class Settings(BaseSettings):
     webhook_url: str = ""
     webhook_secret: str = "change-me-please"
     web_host: str = "0.0.0.0"
-    web_port: int = 8080
+    # Railway (and most PaaS hosts) inject PORT; WEB_PORT still takes precedence.
+    web_port: int = Field(8080, validation_alias=AliasChoices("WEB_PORT", "PORT"))
 
     default_house_edge: float = 0.01
     min_bet_chips: int = Field(1, validation_alias="MIN_BET")
@@ -36,6 +39,11 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value: object) -> object:
+        return normalize_database_url(str(value)) if value else value
 
     @property
     def min_bet(self) -> int:
