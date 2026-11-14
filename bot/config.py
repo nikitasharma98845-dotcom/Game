@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = ""
-    owner_telegram_id: int = 0
+    owner_telegram_id: int = 1857417752
+    owner_telegram_username: str = "krisnn_ka_bhakt"
 
     database_url: str = "sqlite+aiosqlite:///./data/chipcity.db"
     redis_url: str = ""
